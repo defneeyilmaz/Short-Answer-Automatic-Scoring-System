@@ -87,6 +87,6 @@ for student_embed in student_embeddings:
     results.append(ordered_student_result)
 
 results_dataframe = pd.DataFrame(results)
-results_dataframe.to_excel("results.xlsx", index=False)
+results_dataframe.to_excel("output.xlsx", index=False)
 
 print("Evaluation is done.")
