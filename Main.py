@@ -1,6 +1,5 @@
 import pandas as pd
 from sentence_transformers import SentenceTransformer
-from sklearn.metrics.pairwise import cosine_similarity
 
 model = SentenceTransformer('sentence-transformers/distiluse-base-multilingual-cased-v1')
 
@@ -10,7 +9,7 @@ students_answers = pd.read_excel("answers.xlsx")
 questions_embeddings = {}
 student_embeddings = {}
 
-for index, row  in answer_sheet.iterrows():
+for index, row in answer_sheet.iterrows():
     answers = [row['SCORE-1'].replace("\t", ""), row['SCORE-2'].replace("\t", ""), row['SCORE-3'].replace("\t", "")]
     temp = {}
     count1 = 1
@@ -23,28 +22,28 @@ for index, row  in answer_sheet.iterrows():
         }
         count1 += 1
 
-    questions_embeddings[row['Question- ID']]={
+    questions_embeddings[row['Question- ID']] = {
         'Question': row['Question'],
         'Answer_Embeddings': temp
     }
 
-print(questions_embeddings)
+# print(questions_embeddings)
 
 for index, row in students_answers.iterrows():
     student_id = row['Unnamed: 0']
     answers = {}
     for question_id in questions_embeddings.keys():
-        answer = str(row[question_id+'-answer']) if pd.notna(row[question_id+'-answer']) else ""
+        answer = str(row[question_id + '-answer']) if pd.notna(row[question_id + '-answer']) else ""
         answers[question_id] = model.encode(answer)
 
     student_embeddings[student_id] = answers
 
-print(student_embeddings)
+# print(student_embeddings)
 
-results=[]
+results = []
 
 for student_embed in student_embeddings:
-    student_result={'Student ID':student_embed}
+    student_result = {'Student ID': student_embed}
     total_score = 0
     for question_embed in questions_embeddings:
         max_similarity = 0
@@ -54,9 +53,8 @@ for student_embed in student_embeddings:
         for score_key, score_data in questions_embeddings[question_embed]["Answer_Embeddings"].items():
             unparsed_answer = score_data["answer"]
             score_embeddings = score_data["embeddings"]
-            for embedding, parsed_answer in zip(score_embeddings,unparsed_answer):
-                similarity = cosine_similarity([student_embeddings[student_embed][question_embed]],[embedding])
-
+            for embedding, parsed_answer in zip(score_embeddings, unparsed_answer):
+                similarity = model.similarity(student_embeddings[student_embed][question_embed], embedding)
                 if similarity > max_similarity:
                     max_similarity = similarity
                     best_answer = parsed_answer
@@ -64,9 +62,9 @@ for student_embed in student_embeddings:
                     score = score_key
 
         total_score = total_score + int(score[-1])
-        student_result[question_embed+' - Predicted Score'] = int(score[-1])
+        student_result[question_embed + ' - Predicted Score'] = int(score[-1])
         student_result[question_embed + ' - Matching Answer'] = best_answer
-        student_result[question_embed + ' - Cosine Similarity'] = float(str(max_similarity).replace("[","").replace("]",""))
+        student_result[question_embed + ' - Cosine Similarity'] = float(max_similarity)
 
     student_result['Student Total Score'] = total_score
     new_order = [
@@ -90,3 +88,5 @@ for student_embed in student_embeddings:
 
 results_dataframe = pd.DataFrame(results)
 results_dataframe.to_excel("results.xlsx", index=False)
+
+print("Evaluation is done.")
